@@ -63,3 +63,59 @@ print(msg[:])   # 처음부터 끝까지
 # 역방향
 print(msg[17:22])
 print(msg[-5:])
+
+# 4. 문자열 함수
+str = "Hello World"
+# 시험 : 11글자 0 ~ 10, -11 ~ -1
+
+print("=" * 100)
+# 4-1. len() : 문자열 길이 계산
+print(len(str))
+
+# 4-2 upper() and lower() : 대소문자 변경
+# - ID = "Cholong02" -> "cholong02".lower()
+# - 데이터 전처리 -> 1A, 1a -> upper() 1A 통일
+print(str.upper())
+print(str.lower())
+
+# 4-3. replace() : 문자열 내의 특정 문자 치환
+print(str.replace("H", "J"))
+
+# 4-4. split() : 구분자를 기준으로 문자열 분할(Default: 공백)
+b = "hello world what a nice weather"
+print(b.split())
+print(b.split("w"))
+
+# 4-5. strip() : 문자열의 좌우공백 제거
+id = "                         python1004              "
+print(id)
+print(id. strip())
+
+id = "              Cholong1004     "
+print(id.lower().strip())  # . : 참조 연산자 ( ~ 에서)
+
+# 4-6. find() and rfind() : 문자열 내부의 특정 문자 위치 인덱스 출력
+print(str.find("o"))     # Hell'o' World
+print(str.rfind("o"))    # Hello W'o'rld
+print(str.find("world")) # 못 찾으면 -1 출력
+print(str.find("World")) # 단어의 첫 글자 인덱스
+print(str.rfind("World"))# 단어의 첫 글자 인덱스
+# 만약 Hello World World 일 경우 find와 rfind의 출력값이 다름
+
+# 4-7 in() : 특정 문자열 포함하는지 확인(True, False 출력)
+print("Hi" in "Hi Python")
+
+# 문제
+#   "abc123@gmail.com"
+#   "ter@naver.com"
+id = "cherry1004@gmail.com"
+val = id[:id.find("@")] # 바로 안 하고 idx = id.find("@") 후 idx값 넣어도 가능
+print(val) # cherry1004 출력
+
+#       "www.google.com"
+#       "www.daum.net"
+url = "www.naver.com"
+u1 = url.find(".")
+u2 = url.rfind(".")
+val = url[u1+1 : u2]
+print(val) # 출력 : google or daum or naver
