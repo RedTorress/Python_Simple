@@ -58,4 +58,5 @@ while True:
             get_news(url["href"])
     else:
         print("잘못된 URL 경로입니다. 다시 한번 확인해주세요.")
+
     page += 1
