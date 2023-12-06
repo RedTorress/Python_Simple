@@ -15,7 +15,7 @@
 #   - URL: https://sites.google.com/chromium.org/driver/
 #  2.실시간(코드) 다운로드
 
-from db.movie_dao import add_review
+from db.movie_dao import add_review, get_last_review
 from datetime import datetime, timedelta
 import math
 import re
@@ -30,6 +30,13 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 
 def review_collector(movie_code):
+    last_date = get_last_review()
+
+    if last_date == None:
+        last_date = 0
+    else:
+        last_date = int(last_date["int_regdate"])
+
     # 1.Selenium 전용 웹 브라우저 구동
     options = Options()
     options.add_experimental_option("detach", True)
@@ -43,19 +50,19 @@ def review_collector(movie_code):
     # 3.페이지 전체 코드 가져오기
     doc_html = driver.page_source
 
-    # 4.Selenim → BeautifulSoup
+    # 4.Selenium -> BeautifulSoup
     doc = BeautifulSoup(doc_html, "html.parser")
 
     # 5.영화 제목 수집
     movie_title = doc.select("span.txt_tit")[0].get_text()
-    print("="* 100)
+    print("="*100)
     print(f"= 영화 제목: {movie_title}")
-    print("="* 100)
+    print("="*100)
 
     # 6.전체 리뷰 출력("평점 더보기" 클릭)
-    #  - 다음 영화 최초 페이지 → 10개
-    #  - "평점 더보기" 클릭 → 30개
-    #  ? "평점 더보기" 몇 번 클릭? → 전체 리뷰 출력
+    #  - 다음 영화 최초 페이지 -> 10개
+    #  - "평점 더보기" 클릭 -> 30개
+    #  ? "평점 더보기" 몇 번 클릭? -> 전체 리뷰 출력
 
     # ex) 전체 리뷰: 187개
     # 수식: 올림((187 - 10) / 30)
@@ -66,38 +73,29 @@ def review_collector(movie_code):
     # 6-2. 전체 리뷰에서 숫자만 추출
     #  - 문자열 슬라이싱
     #  예) (187명)
-    # print(total_review_cnt[1:-2])
-    #  - 정규식 → 숫자만 추출
+    # print(total_review_cnt[1:-2])   # 이거 기말고사 나옴 저 숫자
+    #  - 정규식 -> 숫자만 추출
     num_review = int(re.sub(r"[^~0-9]", "", total_review_cnt))
+    # 이게 정규식 0~9까지 숫자가 아니면 공백으로 바뀌라는뜻
 
     # 6-3."평점 더보기" 클릭 횟수 계산(모든 리뷰 출력)
-    click_cnt = math.ceil((num_review - 10) / 30)
+    clink_cnt = math.ceil((num_review - 10) / 30)
 
     # 7.Selenium을 통해서 "평점 더보기" 클릭
-    for i in range(click_cnt):
-        # "평점 더보기" 클릭
+    for i in range(clink_cnt):
+        # "평정 더보기" 클릭
         driver.find_element(By.CLASS_NAME, "link_fold").click()
         time.sleep(1)
 
-    # 8.전체 소스코드 가져오기
+    # 8.전체 소스 코드 가져오기
     doc_html = driver.page_source
     doc = BeautifulSoup(doc_html, "html.parser")
     review_list = doc.select("ul.list_comment > li")
-    print(f"= 전체 리뷰 : {len(review_list)}건")
+    print(f"= 전체 리뷰: {len(review_list)}건")
 
-    # item : 리뷰 1건(평점, 리뷰, 작성자, 작성일자)         기말고사 수집문제 1문제 selenium 안쓰고 request와 beautifulsoup만 사용
+    # item: 리뷰 1건(평점, 리뷰, 작성자, 작성일자)
+    count = 0
     for item in review_list:
-        review_score = item.select("div.ratings")[0].get_text()
-        print(f"  - 평점 : {review_score}")
-
-        review_content = item.select("p.desc_txt")[0].get_text().strip()
-        # \n = : 한 줄 개행 -> \n을 제거
-        review_content = re.sub("\n", "", review_content)
-        print(f"  - 리뷰 : {review_content}")
-
-        review_writer = item.select("a.link_nick > span")[1].get_text()   # [댓글 작성자, 작성자, 댓글 모아보기]
-        print(f"  - 작성자 : {review_writer}")
-
         # 다음 영화 리뷰 날짜 표시방법
         # 1."조금전"
         # 2."?분전"
@@ -109,23 +107,42 @@ def review_collector(movie_code):
             review_date = datetime.now() - timedelta(seconds=59)
             review_date = review_date.strftime("%Y. %m. %d. %H:%M")
         elif review_date[-2:] == "분전":
-            # 1분전 ~ 59분전 -> "분전"
-            reg_minute = int(re.sub(r"[^~0-9]", "", review_date))
-            review_date = datetime.now() - timedelta(minutes=reg_minute)
+            # 1분전~59분전 → "분전"
+            reg_minutes = int(re.sub(r"[^~0-9]", "", review_date))
+            review_date = datetime.now() - timedelta(minutes=reg_minutes)
             review_date = review_date.strftime("%Y. %m. %d. %H:%M")
         elif review_date[-3:] == "시간전":
-            # 1시간전 ~ 23시간전 -> "시간전"
+            # 1시간전~23시간전 → "시간전"
             reg_hour = int(re.sub(r"[^~0-9]", "", review_date))
             review_date = datetime.now() - timedelta(hours=reg_hour)
             review_date = review_date.strftime("%Y. %m. %d. %H:%M")
+        collet_date = int(re.sub(r"[^~0-9]", "", review_date))
+        if last_date >= collet_date:
+            continue
+
+        count += 1
+        print("=" * 100)
+        review_score = item.select("div.ratings")[0].get_text()
+        print(f"  - 평점: {review_score}")
+        review_content = item.select("p.desc_txt")[0].get_text().strip()
+        # \n : 한 줄 개행 -> \n을 제거
+        review_content = re.sub("\n", "", review_content)
+        print(f"  - 리뷰: {review_content}")
+        review_writer = item.select("a.link_nick > span")[1].get_text()  # [댓글 작성자, 작성자, 댓글 모아보기]
+        print(f"  - 작성자: {review_writer}")
+
         print(f"  - 날짜: {review_date}")
 
-        # MariaDB 저장(제목, 리뷰, 평점, 작성자, 작성일자)
+    # MariaDB 저장(제목, 리뷰, 평점, 작성자, 작성일자)
         data = {
-            "title" : movie_title,
-            "review" : review_content,
+            "title": movie_title,
+            "review": review_content,
             "score": review_score,
-            "writer": review_writer,
+            "writer":review_writer,
             "reg_date": review_date
         }
         add_review(data)
+
+    # 수집한 리뷰 건수 출력
+    now = datetime.now().strftime("%Y.%m.%d %H:%M:%S")
+    print(f"{now} → 수집한 리뷰 {count}건")
